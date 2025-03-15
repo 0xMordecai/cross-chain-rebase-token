@@ -148,7 +148,7 @@ contract RebaseTokenTest is Test {
 
     function testCannotSetInterestRate(uint256 newInterestRate) public {
         vm.prank(user);
-        vm.expectRevert(Ownable.OwnableUnauthorizedAccount.selector);
+        vm.expectPartialRevert(Ownable.OwnableUnauthorizedAccount.selector);
         rebaseToken.setInterestRate(newInterestRate);
     }
 
@@ -158,5 +158,38 @@ contract RebaseTokenTest is Test {
         rebaseToken.mint(user, 100);
         vm.expectRevert();
         rebaseToken.burn(user, 100);
+    }
+
+    function testGetPrincipalBalance(uint256 amount) public {
+        amount = bound(amount, 1e5, type(uint96).max);
+        // 1.Deposit
+        vm.deal(user, amount);
+        vm.prank(user);
+        vault.deposit{value: amount}();
+        // 2. check the principal balance
+        assertEq(rebaseToken.principalBalanceOf(user), amount);
+
+        // 3. check the balance after some time
+        vm.warp(block.timestamp + 1 hours);
+        assertEq(rebaseToken.principalBalanceOf(user), amount);
+    }
+
+    function testGetRebaseTokenAddress() public view {
+        assertEq(vault.getRebaseToken(), address(rebaseToken));
+    }
+
+    function testInterestRateCanOnlyDecrease(uint256 newInterestRate) public {
+        uint256 initialInterestRate = rebaseToken.getInterestRate();
+        vm.assume(newInterestRate > initialInterestRate);
+        vm.prank(owner);
+        vm.expectRevert(
+            abi.encodeWithSelector(
+                RebaseToken.RebaseToken__InterestRateCanOnlyDecrease.selector,
+                initialInterestRate,
+                newInterestRate
+            )
+        );
+        rebaseToken.setInterestRate(newInterestRate);
+        assertEq(rebaseToken.getInterestRate(), initialInterestRate);
     }
 }

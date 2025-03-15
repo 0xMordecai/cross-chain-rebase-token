@@ -54,17 +54,17 @@ contract RebaseToken is ERC20, Ownable, AccessControl {
         emit InterestRateSet(_newInterestRate);
     }
 
-    /*
+    /** 
      * @notice Get the principle balance of a user. This is the number of tokens that have actually been minted to the user, not including any interest that has accrued since the last time the user interacted with the protocol.
      * @param _user The user to get the principle balance for
      * @return The principle balance of the user
 
-     */
+    */
     function principalBalanceOf(address _user) external view returns (uint256) {
         return super.balanceOf(_user);
     }
 
-    /*
+    /**
     * @notice Mint the user tokens when they deposit into the vault
     * @param _to The user to mint the tokens to
     * @param _amount The amount of tokens to mint
@@ -177,8 +177,8 @@ contract RebaseToken is ERC20, Ownable, AccessControl {
         uint256 timeSinceLastUpdate = block.timestamp -
             s_lastUpdatedTimesamp[_user];
 
-        uint256 linearInterset = (PRECISION_FACTOR +
-            (s_userInterestRate[_user] * timeSinceLastUpdate));
+        uint256 linearInterset = PRECISION_FACTOR +
+            (s_userInterestRate[_user] * timeSinceLastUpdate);
 
         return linearInterset;
     }
