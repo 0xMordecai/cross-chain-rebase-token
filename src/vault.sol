@@ -25,8 +25,13 @@ contract Vault {
      */
     function deposit() external payable {
         // Mint tokens to the user
+
         emit Deposit(msg.sender, msg.value);
-        i_rebaseToken.mint(msg.sender, msg.value);
+        i_rebaseToken.mint(
+            msg.sender,
+            msg.value,
+            i_rebaseToken.getInterestRate()
+        );
     }
 
     /**

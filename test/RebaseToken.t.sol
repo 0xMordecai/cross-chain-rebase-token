@@ -155,7 +155,7 @@ contract RebaseTokenTest is Test {
     function testCannotCallMintAndBurnRole() public {
         vm.prank(user);
         vm.expectRevert();
-        rebaseToken.mint(user, 100);
+        rebaseToken.mint(user, 100, rebaseToken.getInterestRate());
         vm.expectRevert();
         rebaseToken.burn(user, 100);
     }
