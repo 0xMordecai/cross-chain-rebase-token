@@ -22,7 +22,7 @@ contract CrossChainTest is Test {
     address user = makeAddr("user");
     uint256 sepoliaFork;
     uint256 arbSepolia;
-    uint256 SEND_VALUE = 1 ether;
+    uint256 SEND_VALUE = 1e2;
 
     CCIPLocalSimulatorFork ccipLocalSimulatorFork;
 
@@ -71,21 +71,19 @@ contract CrossChainTest is Test {
             sepoliaNetworkDetails.registryModuleOwnerCustomAddress
         ).registerAdminViaOwner(address(sepoliaToken));
         console.log(address(sepoliaToken));
-        TokenAdminRegistry(
-            sepoliaNetworkDetails.registryModuleOwnerCustomAddress
-        ).acceptAdminRole(address(sepoliaToken));
+        TokenAdminRegistry(sepoliaNetworkDetails.tokenAdminRegistryAddress)
+            .acceptAdminRole(address(sepoliaToken));
         // 5. Linking Tokens to Pools
-        TokenAdminRegistry(
-            sepoliaNetworkDetails.registryModuleOwnerCustomAddress
-        ).setPool(address(sepoliaToken), address(sepoliaPool));
+        TokenAdminRegistry(sepoliaNetworkDetails.tokenAdminRegistryAddress)
+            .setPool(address(sepoliaToken), address(sepoliaPool));
         vm.stopPrank();
 
         // B Deploy and configure on arbitrum-Sepolia
         vm.selectFork(arbSepolia);
+        vm.startPrank(owner);
         arbSepoliaNetworkDetails = ccipLocalSimulatorFork.getNetworkDetails(
             block.chainid
         );
-        vm.startPrank(owner);
         // 1. Deploying Tokens
         arbSepoliaToken = new RebaseToken();
         // 2. Deploying Token Pools
@@ -100,13 +98,11 @@ contract CrossChainTest is Test {
         RegistryModuleOwnerCustom(
             arbSepoliaNetworkDetails.registryModuleOwnerCustomAddress
         ).registerAdminViaOwner(address(arbSepoliaToken));
-        TokenAdminRegistry(
-            arbSepoliaNetworkDetails.registryModuleOwnerCustomAddress
-        ).acceptAdminRole(address(arbSepoliaToken));
+        TokenAdminRegistry(arbSepoliaNetworkDetails.tokenAdminRegistryAddress)
+            .acceptAdminRole(address(arbSepoliaToken));
         // 5. Linking Tokens to Pools
-        TokenAdminRegistry(
-            arbSepoliaNetworkDetails.registryModuleOwnerCustomAddress
-        ).setPool(address(arbSepoliaToken), address(arbSepoliaPool));
+        TokenAdminRegistry(arbSepoliaNetworkDetails.tokenAdminRegistryAddress)
+            .setPool(address(arbSepoliaToken), address(arbSepoliaPool));
 
         vm.stopPrank();
 
@@ -134,7 +130,7 @@ contract CrossChainTest is Test {
         address remoteTokenAddress
     ) public {
         vm.selectFork(fork);
-        vm.prank(owner);
+        vm.startPrank(owner);
         bytes[] memory remotePoolAddresses = new bytes[](1);
         remotePoolAddresses[0] = abi.encodePacked(address(remotePool));
         TokenPool.ChainUpdate[]
@@ -246,7 +242,7 @@ contract CrossChainTest is Test {
     function testBridgeAllTokens() public {
         vm.selectFork(sepoliaFork);
         vm.deal(user, SEND_VALUE);
-        vm.prank(user);
+        vm.startPrank(user);
         Vault(payable(address(vault))).deposit{value: SEND_VALUE}();
         assertEq(sepoliaToken.balanceOf(user), SEND_VALUE);
 
@@ -258,6 +254,19 @@ contract CrossChainTest is Test {
             arbSepoliaNetworkDetails,
             sepoliaToken,
             arbSepoliaToken
+        );
+
+        vm.selectFork(arbSepolia);
+        vm.warp(block.timestamp + 20 minutes);
+
+        bridgeTokens(
+            arbSepoliaToken.balanceOf(user),
+            arbSepolia,
+            sepoliaFork,
+            arbSepoliaNetworkDetails,
+            sepoliaNetworkDetails,
+            arbSepoliaToken,
+            sepoliaToken
         );
     }
 }
