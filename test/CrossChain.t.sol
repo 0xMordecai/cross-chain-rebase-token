@@ -17,7 +17,7 @@ import {RateLimiter} from "@ccip/contracts/src/v0.8/ccip/libraries/RateLimiter.s
 import {Client} from "@ccip/contracts/src/v0.8/ccip/libraries/Client.sol";
 import {IRouterClient} from "@ccip/contracts/src/v0.8/ccip/interfaces/IRouterClient.sol";
 
-contract CrossChainTes is Test {
+contract CrossChainTest is Test {
     address owner = makeAddr("owner");
     address user = makeAddr("user");
     uint256 sepoliaFork;
@@ -38,8 +38,9 @@ contract CrossChainTes is Test {
     Vault vault;
 
     function setUp() public {
-        sepoliaFork = vm.createSelectFork("sepolia");
-        arbSepolia = vm.createSelectFork("arb-Sepolia");
+        address[] memory allowlist = new address[](0);
+        sepoliaFork = vm.createSelectFork("eth");
+        arbSepolia = vm.createFork("arb");
         ccipLocalSimulatorFork = new CCIPLocalSimulatorFork();
         vm.makePersistent(address(ccipLocalSimulatorFork));
 
@@ -50,14 +51,18 @@ contract CrossChainTes is Test {
         vm.startPrank(owner);
         // 1. Deploying Tokens
         sepoliaToken = new RebaseToken();
-        vault = new Vault(IRebaseToken(address(sepoliaToken)));
+
         // 2. Deploying Token Pools
         sepoliaPool = new RebaseTokenPool(
             IERC20(address(sepoliaToken)),
-            new address[](0),
+            allowlist,
             sepoliaNetworkDetails.rmnProxyAddress,
             sepoliaNetworkDetails.routerAddress
         );
+        // deploy the vault
+        vault = new Vault(IRebaseToken(address(sepoliaToken)));
+        // add rewards to the vault
+        vm.deal(address(vault), 1e18);
         // 3. Claiming Mint and Burn Roles
         sepoliaToken.grantMintAndBurnRole(address(vault));
         sepoliaToken.grantMintAndBurnRole(address(sepoliaPool));
@@ -65,6 +70,7 @@ contract CrossChainTes is Test {
         RegistryModuleOwnerCustom(
             sepoliaNetworkDetails.registryModuleOwnerCustomAddress
         ).registerAdminViaOwner(address(sepoliaToken));
+        console.log(address(sepoliaToken));
         TokenAdminRegistry(
             sepoliaNetworkDetails.registryModuleOwnerCustomAddress
         ).acceptAdminRole(address(sepoliaToken));
@@ -194,7 +200,7 @@ contract CrossChainTes is Test {
             extraArgs: Client._argsToBytes(
                 Client.EVMExtraArgsV2({
                     gasLimit: 100_000,
-                    allowOutOfOrderExecution: true
+                    allowOutOfOrderExecution: false
                 })
             )
         });
