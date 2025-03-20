@@ -200,16 +200,22 @@ contract CrossChainTest is Test {
                 })
             )
         });
-        uint256 fee = IRouterClient(localNetworkDetails.routerAddress).getFee(
-            remoteNetworkDetails.chainSelector,
-            message
+
+        ccipLocalSimulatorFork.requestLinkFromFaucet(
+            user,
+            IRouterClient(localNetworkDetails.routerAddress).getFee(
+                remoteNetworkDetails.chainSelector,
+                message
+            )
         );
-        ccipLocalSimulatorFork.requestLinkFromFaucet(user, fee);
         vm.prank(user);
 
         IERC20(localNetworkDetails.linkAddress).approve(
             localNetworkDetails.routerAddress,
-            fee
+            IRouterClient(localNetworkDetails.routerAddress).getFee(
+                remoteNetworkDetails.chainSelector,
+                message
+            )
         );
         vm.prank(user);
         IERC20(address(localToken)).approve(
